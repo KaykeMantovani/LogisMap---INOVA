@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogisMap — Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS & JS (Free API alternative for maps) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0d1b2a;
+      --navy-mid:   #162236;
+      --navy-light: #1e3250;
+      --accent:     #00d4ff;
+      --accent2:    #ff6b35;
+      --green:      #1adb8a;
+      --text-pri:   #e8f0fe;
+      --text-sec:   #7a92b0;
+      --border:     rgba(0, 212, 255, 0.12);
+      --sidebar-w:  260px;
+      --header-h:   60px;
+      --font-head:  'Space Grotesk', sans-serif;
+      --font-body:  'DM Sans', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--navy);
+      font-family: var(--font-body);
+      color: var(--text-pri);
+      overflow: hidden;
+    }
+
+    /* ─── LAYOUT WRAPPER ─────────────────────────── */
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ─── SIDEBAR ─────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--navy-mid);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      z-index: 100;
+    }
+
+    /* Decorative glow line */
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 1px; height: 100%;
+      background: linear-gradient(180deg, transparent, var(--accent) 40%, transparent);
+      opacity: 0.4;
+    }
+
+    .sidebar-logo {
+      padding: 28px 24px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo .logo-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), #0080ff);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 16px rgba(0, 212, 255, 0.35);
+    }
+
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-pri);
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .logo-sub {
+      margin-top: 4px;
+      font-size: 0.68rem;
+      color: var(--text-sec);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* Nav */
+    nav { padding: 20px 12px; flex: 1; }
+
+    .nav-section-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-sec);
+      padding: 0 12px;
+      margin: 16px 0 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-sec);
+      position: relative;
+      user-select: none;
+    }
+
+    .nav-item:hover { background: var(--navy-light); color: var(--text-pri); }
+
+    .nav-item.active {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--accent);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 60%;
+      background: var(--accent);
+      border-radius: 0 3px 3px 0;
+    }
+
+    .nav-icon {
+      width: 18px; height: 18px;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: var(--navy);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 20px;
+    }
+
+    /* Team card */
+    .sidebar-footer { padding: 16px 16px 20px; }
+
+    .team-card {
+      background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,128,255,0.08));
+      border: 1px solid rgba(0,212,255,0.22);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-card::after {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 80px; height: 80px;
+      background: var(--accent);
+      opacity: 0.06;
+      border-radius: 50%;
+    }
+
+    .team-card-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-sec);
+      margin-bottom: 6px;
+    }
+
+    .team-card-value {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .team-card-desc {
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      margin-top: 4px;
+    }
+
+    .team-dots {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .team-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-dot 2s infinite;
+    }
+
+    .team-dot:nth-child(2) { animation-delay: 0.4s; }
+    .team-dot:nth-child(3) { animation-delay: 0.8s; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ─── MAIN ────────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--navy);
+    }
+
+    /* Header */
+    header {
+      height: var(--header-h);
+      min-height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: var(--navy-mid);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-title {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-pri);
+    }
+
+    .header-breadcrumb {
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-breadcrumb span { color: var(--accent); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-stat {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      background: var(--navy-light);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .header-stat-markers {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--text-sec);
+      background: var(--navy-light);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .header-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #0055ff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--navy);
+      cursor: pointer;
+      border: 2px solid rgba(0,212,255,0.4);
+    }
+
+    /* Map area */
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      display: flex;
+    }
+
+    #mapa {
+      width: 100%;
+      height: 100%;
+    }
+
+    #map-warning {
+      width: 100%;
+      height: 100%;
+      background: var(--navy-mid);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    /* Floating info panel sobre o mapa */
+    .map-overlay {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 800;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .overlay-chip {
+      background: rgba(13, 27, 42, 0.88);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-sec);
+      font-family: var(--font-body);
+    }
+
+    .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .chip-dot.red   { background: #ff4757; box-shadow: 0 0 6px #ff4757; }
+    .chip-dot.blue  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .chip-dot.yellow { background: #ffb300; box-shadow: 0 0 6px #ffb300; }
+    .chip-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .chip-dot.line  { background: #00d4ff; box-shadow: 0 0 6px #00d4ff; border-radius: 2px; width: 14px; height: 3px; }
+
+    .overlay-chip strong { color: var(--text-pri); }
+
+    /* Responsive: em telas pequenas a sidebar vira overlay */
+    @media (max-width: 720px) {
+      .sidebar { width: 0; min-width: 0; overflow: hidden; }
+    }
+
+    /* ─── NOVOS ESTILOS: KPIS ────────────────────── */
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 16px 24px;
+      background: var(--navy);
+      flex-shrink: 0;
+    }
+
+    .kpi-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 212, 255, 0.25);
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 60px; height: 60px;
+      background: var(--accent);
+      opacity: 0.03;
+      border-radius: 50%;
+    }
+
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .kpi-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-sec);
+    }
+
+    .kpi-icon {
+      font-size: 1.1rem;
+    }
+
+    .kpi-value {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-pri);
+      line-height: 1.2;
+    }
+
+    .kpi-sparkline {
+      margin-top: 10px;
+      width: 100%;
+      height: 25px;
+    }
+
+    /* ─── NOVOS ESTILOS: TABELAS E CRUD ─────────── */
+    .view-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-pri);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0055ff);
+      color: var(--navy);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,212,255,0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,212,255,0.4);
+    }
+
+    .table-wrapper {
+      flex: 1;
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    .data-table th {
+      background: rgba(22, 34, 54, 0.8);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 14px 20px;
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-sec);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.05);
+      color: var(--text-pri);
+      vertical-align: middle;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(30, 50, 80, 0.15);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .badge-active {
+      background: rgba(26, 219, 138, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(26, 219, 138, 0.25);
+    }
+
+    .badge-inactive {
+      background: rgba(122, 146, 176, 0.12);
+      color: var(--text-sec);
+      border: 1px solid rgba(122, 146, 176, 0.25);
+    }
+
+    .badge-progress {
+      background: rgba(0, 212, 255, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+    }
+
+    .badge-completed {
+      background: rgba(26, 219, 138, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(26, 219, 138, 0.25);
+    }
+
+    .badge-paused {
+      background: rgba(255, 107, 53, 0.12);
+      color: var(--accent2);
+      border: 1px solid rgba(255, 107, 53, 0.25);
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      color: var(--text-pri);
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--accent);
+      color: var(--navy);
+      border-color: var(--accent);
+    }
+
+    .btn-action-delete:hover {
+      background: #ff4757;
+      color: white;
+      border-color: #ff4757;
+    }
+
+    /* ─── NOVOS ESTILOS: FLOATING BUTTON NO MAPA ─── */
+    .btn-add-marcador-wrapper {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 800;
+    }
+
+    .btn-floating-map {
+      background: linear-gradient(135deg, var(--accent), #0055ff);
+      color: var(--navy);
+      border: none;
+      width: 150px;
+      height: 44px;
+      border-radius: 22px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-floating-map:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 255, 0.55);
+    }
+
+    .btn-floating-map.active-mode {
+      background: #ff4757;
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+    }
+
+    .cursor-crosshair {
+      cursor: crosshair !important;
+    }
+
+    /* ─── NOVOS ESTILOS: MODAIS E TOASTS ────────── */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(13, 27, 42, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 420px;
+      max-width: 90%;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-pri);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-sec);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--accent);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-sec);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text-pri);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      border: none;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--text-sec);
+      border: 1px solid var(--border);
+    }
+
+    .btn-cancel:hover {
+      background: var(--navy-light);
+      color: var(--text-pri);
+    }
+
+    .btn-confirm {
+      background: linear-gradient(135deg, var(--accent), #0055ff);
+      color: var(--navy);
+      box-shadow: 0 4px 14px rgba(0, 212, 255, 0.35);
+    }
+
+    .btn-confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 212, 255, 0.5);
+    }
+
+    /* Toasts */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 12px 20px;
+      color: var(--text-pri);
+      font-size: 0.88rem;
+      font-family: var(--font-body);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 280px;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .toast.active {
+      transform: translateX(0);
+    }
+
+    .toast-error {
+      border-left-color: #ff4757;
+    }
+
+    .toast-success {
+      border-left-color: var(--green);
+    }
+
+    .toast-icon {
+      font-size: 1.1rem;
+    }
+
+    /* Estilos para o marcador customizado no Leaflet */
+    .custom-leaflet-marker {
+      background: transparent !important;
+      border: none !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">🗺️</div>
+        <div>
+          <div class="logo-text">Logis<span>Map</span></div>
+        </div>
+      </div>
+      <div class="logo-sub">Sistema de Gestão Logística</div>
+    </div>
+
+    <nav>
+      <div class="nav-section-label">Principal</div>
+
+      <div class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Dashboard
+      </div>
+
+      <div class="nav-item" id="nav-equipes" onclick="switchView('equipes')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <path d="M21 21v-2a4 4 0 0 0-3-3.87"/>
+        </svg>
+        Equipes
+        <span class="nav-badge" id="sidebar-equipes-count">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-obras" onclick="switchView('obras')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+          <line x1="8" y1="2" x2="8" y2="18"/>
+          <line x1="16" y1="6" x2="16" y2="22"/>
+        </svg>
+        Obras
+        <span class="nav-badge" id="sidebar-obras-count">0</span>
+      </div>
+
+      <div class="nav-section-label">Sistema</div>
+
+      <div class="nav-item" id="nav-configs" onclick="switchView('configs')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+        Configurações
+      </div>
+    </nav>
+
+    <!-- Card equipes em campo -->
+    <div class="sidebar-footer">
+      <div class="team-card">
+        <div class="team-card-label">Equipes em Campo</div>
+        <div class="team-card-value" id="sidebar-equipes-campo">0</div>
+        <div class="team-card-desc">Vila Velha, ES</div>
+        <div class="team-dots" id="sidebar-team-dots">
+          <!-- Gerado dinamicamente -->
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main">
+
+    <!-- Header -->
+    <header>
+      <div class="header-left">
+        <div>
+          <div class="header-title" id="header-title-view">Mapa Operacional</div>
+          <div class="header-breadcrumb">Dashboard <span>/</span> <span id="header-breadcrumb-current">Visão em Tempo Real</span></div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-stat">
+          <div class="stat-dot"></div>
+          Sistema Online
+        </div>
+        <div class="header-stat-markers" id="header-markers-chip">📍 0 marcadores ativos</div>
+        <div class="header-avatar">VS</div>
+      </div>
+    </header>
+
+    <!-- ─── VISÃO 1: DASHBOARD (MAPA + KPIS) ─── -->
+    <div id="view-dashboard" class="view-content" style="display: flex; flex-direction: column; padding: 0;">
+      <!-- KPIs do Dashboard -->
+      <div class="kpi-container">
+        <!-- KPI 1: Equipes -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total de Equipes</span>
+            <span class="kpi-icon">👥</span>
+          </div>
+          <div class="kpi-value" id="kpi-total-equipes">0</div>
+          <!-- Sparkline SVG simples -->
+          <svg class="kpi-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+            <path d="M0,20 Q15,5 30,15 T60,5 T90,12 L100,10" fill="none" stroke="var(--accent)" stroke-width="2"></path>
+          </svg>
+        </div>
+
+        <!-- KPI 2: Obras -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Obras Cadastradas</span>
+            <span class="kpi-icon">🔨</span>
+          </div>
+          <div class="kpi-value" id="kpi-total-obras">0</div>
+          <svg class="kpi-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+            <path d="M0,15 Q20,22 40,8 T70,18 T100,5" fill="none" stroke="var(--accent2)" stroke-width="2"></path>
+          </svg>
+        </div>
+
+        <!-- KPI 3: Marcadores -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Marcadores Ativos</span>
+            <span class="kpi-icon">📍</span>
+          </div>
+          <div class="kpi-value" id="kpi-marcadores-ativos">0</div>
+          <svg class="kpi-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+            <path d="M0,5 Q10,18 30,10 T60,22 T100,12" fill="none" stroke="var(--accent)" stroke-width="2"></path>
+          </svg>
+        </div>
+
+        <!-- KPI 4: Equipes Campo -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Equipes em Campo</span>
+            <span class="kpi-icon">📡</span>
+          </div>
+          <div class="kpi-value" id="kpi-equipes-campo">0</div>
+          <svg class="kpi-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+            <path d="M0,22 Q25,12 50,18 T75,5 T100,10" fill="none" stroke="var(--green)" stroke-width="2"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Mapa Wrapper -->
+      <div class="map-wrapper">
+        <!-- Legenda flutuante sobre o mapa -->
+        <div class="map-overlay" id="map-legend-overlay" style="display: none;">
+          <div class="overlay-chip">
+            <div class="chip-dot red"></div>
+            <strong>Obra</strong> — 🔨 Vermelho
+          </div>
+          <div class="overlay-chip">
+            <div class="chip-dot blue"></div>
+            <strong>Hospedagem</strong> — 🏨 Azul
+          </div>
+          <div class="overlay-chip">
+            <div class="chip-dot yellow"></div>
+            <strong>Depósito</strong> — 📦 Amarelo
+          </div>
+          <div class="overlay-chip">
+            <div class="chip-dot green"></div>
+            <strong>Veículo</strong> — 🚛 Verde
+          </div>
+          <div class="overlay-chip">
+            <div class="chip-dot line"></div>
+            Rota terrestre real
+          </div>
+        </div>
+
+        <!-- Botão flutuante para adicionar marcador no mapa -->
+        <div class="btn-add-marcador-wrapper" id="btn-map-floating-wrapper" style="display: none;">
+          <button class="btn-floating-map" id="btn-toggle-add-marker" onclick="toggleAddMarkerMode()">
+            <span>➕</span> Adicionar Ponto
+          </button>
+        </div>
+
+        <!-- Elemento do Google Maps -->
+        <div id="mapa"></div>
+
+        <!-- Alerta amigável de API Key ausente -->
+        <div id="map-warning">
+          <div style="font-size: 3.5rem; filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.4)); margin-bottom: 8px;">🗺️</div>
+          <h3 style="font-family: var(--font-head); font-size: 1.35rem; color: var(--text-pri); font-weight: 600;">Google Maps não configurado</h3>
+          <p style="color: var(--text-sec); font-size: 0.9rem; max-width: 420px; line-height: 1.6; margin-bottom: 12px;">
+            Para traçar as melhores rotas logísticas e visualizar as localizações exatas por estradas, insira a sua chave de API do Google Maps nas configurações.
+          </p>
+          <button class="btn-primary" onclick="switchView('configs')">Ir para Configurações</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── VISÃO 2: EQUIPES (TABELA + CRUD) ─── -->
+    <div id="view-equipes" class="view-content" style="display: none;">
+      <div class="panel-header">
+        <h2 class="panel-title">Gerenciamento de Equipes</h2>
+        <button class="btn-primary" onclick="openEquipeModal()">+ Nova Equipe</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome da Equipe</th>
+              <th>Responsável</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-equipes-body">
+            <!-- Linhas inseridas dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── VISÃO 3: OBRAS (TABELA + CRUD) ─── -->
+    <div id="view-obras" class="view-content" style="display: none;">
+      <div class="panel-header">
+        <h2 class="panel-title">Gerenciamento de Obras</h2>
+        <button class="btn-primary" onclick="openObraModal()">+ Nova Obra</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome da Obra</th>
+              <th>Endereço</th>
+              <th>Equipe Responsável</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-obras-body">
+            <!-- Linhas inseridas dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── VISÃO 4: CONFIGURAÇÕES ─── -->
+    <div id="view-configs" class="view-content" style="display: none;">
+      <div class="panel-header">
+        <h2 class="panel-title">Configurações do Sistema</h2>
+      </div>
+      <div class="table-wrapper" style="padding: 28px; display: flex; flex-direction: column; gap: 28px;">
+        <div>
+          <h3 style="margin-bottom: 12px; font-family: var(--font-head); color: var(--accent); font-size: 1.1rem;">LogisMap API & Banco</h3>
+          <p style="color: var(--text-sec); font-size: 0.9rem; line-height: 1.6; margin-bottom: 14px;">
+            O sistema está configurado para utilizar banco de dados relacional SQLite (`node:sqlite` nativo). A API REST expõe endpoints JSON em `/api/v1/`.
+          </p>
+          <code style="display: inline-block; background: var(--navy-light); padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); color: var(--green); font-size: 0.82rem; font-family: monospace;">
+            Banco de dados local: logismap.db (Ativo)
+          </code>
+        </div>
+        
+        <div style="border-top: 1px solid var(--border); padding-top: 28px;">
+          <h3 style="margin-bottom: 12px; font-family: var(--font-head); color: var(--accent); font-size: 1.1rem;">Provedor de Mapas & Rotas</h3>
+          <p style="color: var(--text-sec); font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">
+            Por padrão, o LogisMap utiliza as APIs gratuitas <strong>Leaflet com OpenStreetMap & OSRM</strong> para desenhar o mapa e traçar rotas rodoviárias reais pelas ruas e avenidas locais de forma 100% gratuita. Caso prefira utilizar a infraestrutura proprietária do Google, insira abaixo a sua <strong>Google Maps API Key</strong>.
+          </p>
+          <form id="form-google-key" onsubmit="saveGoogleMapsKey(event)" style="max-width: 500px; display: flex; flex-direction: column; gap: 14px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="input-google-key">Google Maps API Key</label>
+              <input class="form-input" type="text" id="input-google-key" placeholder="Insira seu token (AIzaSy...)" style="font-family: monospace;" />
+            </div>
+            <button type="submit" class="btn-primary" style="width: max-content;">Salvar Configurações</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ CONTAINER DE TOASTS ═══════════ -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════ MODAL: ADICIONAR MARCADOR ═══════════ -->
+<div class="modal-overlay" id="modal-marcador-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title">Novo Marcador de Mapa</h3>
+      <button class="modal-close" onclick="closeModal('modal-marcador')">&times;</button>
+    </div>
+    <form id="form-marcador" onsubmit="handleMarcadorSubmit(event)">
+      <!-- Inputs escondidos para coordenadas -->
+      <input type="hidden" id="marcador-lat" />
+      <input type="hidden" id="marcador-lng" />
+
+      <div class="form-group">
+        <div style="font-size: 0.75rem; color: var(--text-sec); margin-bottom: 10px; background: var(--navy-light); padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+          Coordenadas capturadas: <span id="marcador-coords-text" style="color: var(--accent); font-weight: 600;"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="marcador-label">Identificação / Label</label>
+        <input class="form-input" type="text" id="marcador-label" placeholder="Ex: Hotel Litoral, Equipe Carlos..." required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="marcador-tipo">Tipo do Marcador</label>
+        <select class="form-select" id="marcador-tipo" required>
+          <option value="obra">Obra (🔨 Vermelho)</option>
+          <option value="hospedagem">Hospedagem (🏨 Azul)</option>
+          <option value="deposito">Depósito (📦 Amarelo)</option>
+          <option value="veiculo">Veículo (🚛 Verde)</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" onclick="closeModal('modal-marcador')">Cancelar</button>
+        <button type="submit" class="btn btn-confirm">Salvar Marcador</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: EQUIPE ═══════════ -->
+<div class="modal-overlay" id="modal-equipe-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-equipe-title">Nova Equipe</h3>
+      <button class="modal-close" onclick="closeModal('modal-equipe')">&times;</button>
+    </div>
+    <form id="form-equipe" onsubmit="handleEquipeSubmit(event)">
+      <input type="hidden" id="equipe-id" />
+
+      <div class="form-group">
+        <label class="form-label" for="equipe-nome">Nome da Equipe</label>
+        <input class="form-input" type="text" id="equipe-nome" placeholder="Ex: Equipe Delta" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="equipe-responsavel">Responsável Técnico</label>
+        <input class="form-input" type="text" id="equipe-responsavel" placeholder="Ex: Carlos Albuquerque" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="equipe-status">Status</label>
+        <select class="form-select" id="equipe-status" required>
+          <option value="ativo">Ativo (Em campo)</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" onclick="closeModal('modal-equipe')">Cancelar</button>
+        <button type="submit" class="btn btn-confirm">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: OBRA ═══════════ -->
+<div class="modal-overlay" id="modal-obra-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-obra-title">Nova Obra</h3>
+      <button class="modal-close" onclick="closeModal('modal-obra')">&times;</button>
+    </div>
+    <form id="form-obra" onsubmit="handleObraSubmit(event)">
+      <input type="hidden" id="obra-id" />
+
+      <div class="form-group">
+        <label class="form-label" for="obra-nome">Nome da Obra</label>
+        <input class="form-input" type="text" id="obra-nome" placeholder="Ex: Obra Shopping Centro" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="obra-endereco">Endereço</label>
+        <input class="form-input" type="text" id="obra-endereco" placeholder="Ex: Av. Carioca, 1500, Centro" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="obra-equipe">Equipe Alocada</label>
+        <select class="form-select" id="obra-equipe">
+          <option value="">Nenhuma (Obra sem equipe)</option>
+          <!-- Preenchido via API -->
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="obra-status">Status</label>
+        <select class="form-select" id="obra-status" required>
+          <option value="em_andamento">Em Andamento</option>
+          <option value="concluida">Concluída</option>
+          <option value="pausada">Pausada</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" onclick="closeModal('modal-obra')">Cancelar</button>
+        <button type="submit" class="btn btn-confirm">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // URL base para as chamadas de API
+  const API_BASE = '/api/v1';
+
+  // Variáveis globais do Mapa (compatível com Google Maps e Leaflet)
+  let map = null;
+  let directionsService = null;
+  let directionsRenderer = null;
+  let activeMarkers = [];
+  let currentInfoWindow = null;
+  let isAddMarkerMode = false;
+  let googleMapsKey = '';
+  let isGoogleMap = false;
+  let leafletRoutePolyline = null;
+
+  // Cache de dados locais
+  let equipesCache = [];
+  let obrasCache = [];
+  let marcadoresCache = [];
+
+  // Declaração do Overlay customizado para o Google Maps
+  let CustomHTMLMapOverlayClass;
+
+  // ─── INICIALIZAÇÃO DO SISTEMA ──────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', async () => {
+    defineGoogleMapsOverlayClass();
+    await checkGoogleMapsKey();
+    await initApp();
+  });
+
+  // Resgata se a chave do Google Maps está configurada no SQLite
+  async function checkGoogleMapsKey() {
+    try {
+      const res = await fetch(`${API_BASE}/configuracoes/google-maps-key`);
+      const result = await res.json();
+      if (result.success && result.data.key) {
+        googleMapsKey = result.data.key;
+        document.getElementById('input-google-key').value = googleMapsKey;
+      }
+    } catch (e) {
+      console.error("Erro ao verificar chave do Google Maps:", e);
+    }
+  }
+  // Inicializa o app e decide se carrega o Google Maps ou mostra o Leaflet (Gratuito)
+  async function initApp() {
+    try {
+      await Promise.all([
+        updateStats(),
+        fetchEquipes(),
+        fetchObras()
+      ]);
+
+      // Sempre exibe o mapa e a legenda
+      document.getElementById('mapa').style.display = 'block';
+      document.getElementById('map-legend-overlay').style.display = 'flex';
+      document.getElementById('btn-map-floating-wrapper').style.display = 'block';
+      document.getElementById('map-warning').style.display = 'none';
+
+      if (googleMapsKey) {
+        isGoogleMap = true;
+        loadGoogleMapsScript(googleMapsKey);
+      } else {
+        isGoogleMap = false;
+        initLeafletMap();
+      }
+    } catch (error) {
+      console.error("Erro na inicialização do app:", error);
+      showToast("Erro ao sincronizar dados com o servidor.", "error");
+    }
+  }
+
+  // Inicializa o mapa gratuito Leaflet + OSM
+  function initLeafletMap() {
+    const container = document.getElementById('mapa');
+    
+    // Destrói instância anterior do mapa se existir
+    if (map) {
+      try {
+        if (typeof map.remove === 'function') {
+          map.remove();
+        }
+      } catch (err) {
+        console.error("Erro ao remover mapa anterior:", err);
+      }
+      container.innerHTML = '';
+    }
+
+    map = L.map('mapa').setView([-20.3297, -40.2925], 13);
+
+    // CartoDB Dark Matter (tema escuro gratuito sem chave de API)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    // Evento de clique para adicionar ponto no Leaflet
+    map.on('click', (e) => {
+      if (!isAddMarkerMode) return;
+      openMarcadorModal(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Plota os marcadores
+    loadMarcadoresMap();
+  }
+
+  // Carrega dinamicamente a biblioteca do Google Maps
+  function loadGoogleMapsScript(key) {
+    if (window.google && window.google.maps) {
+      initGoogleMap();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initGoogleMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
+  // Salva a chave do Google Maps
+  async function saveGoogleMapsKey(event) {
+    event.preventDefault();
+    const key = document.getElementById('input-google-key').value;
+
+    try {
+      const res = await fetch(`${API_BASE}/configuracoes/google-maps-key`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast("Configurações atualizadas com sucesso!", "success");
+        googleMapsKey = key;
+        await initApp();
+      } else {
+        showToast("Erro ao salvar chave: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Não foi possível atualizar a chave nas configurações.", "error");
+    }
+  }
+
+  // Callback chamado após carregamento do script do Google Maps
+  window.initGoogleMap = function() {
+    isGoogleMap = true;
+    
+    // Limpa o container para evitar resíduos do Leaflet se houver
+    const container = document.getElementById('mapa');
+    container.innerHTML = '';
+
+    // Estilo dark personalizado para harmonizar com o LogisMap (#0d1b2a / #162236)
+    const darkMapStyle = [
+      { "backgroundColor": "#0d1b2a" },
+      { "elementType": "geometry", "stylers": [{ "color": "#162236" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#162236" }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#7a92b0" }] },
+      { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#1e3250" }] },
+      { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#7a92b0" }] },
+      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#0d1b2a" }] },
+      { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e3250" }] },
+      { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#e8f0fe" }] },
+      { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#162236" }] },
+      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0d1b2a" }] }
+    ];
+
+    map = new google.maps.Map(document.getElementById('mapa'), {
+      center: { lat: -20.3297, lng: -40.2925 },
+      zoom: 13,
+      styles: darkMapStyle,
+      disableDefaultUI: false,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
+    });
+
+    // Configura os serviços de cálculo de trajetórias/direções
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+      map: map,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#00d4ff',
+        strokeWeight: 4,
+        strokeOpacity: 0.85
+      }
+    });
+
+    // Evento de clique para adicionar ponto
+    map.addListener('click', (e) => {
+      if (!isAddMarkerMode) return;
+      openMarcadorModal(e.latLng.lat(), e.latLng.lng());
+    });
+
+    // Plota os marcadores
+    loadMarcadoresMap();
+  }
+
+  // ─── DEFINIÇÃO DA CLASSE DE OVERLAY DO GOOGLE MAPS ──────────────────────
+  function defineGoogleMapsOverlayClass() {
+    // Definida após o carregamento ou definida localmente herdando de google.maps.OverlayView
+    CustomHTMLMapOverlayClass = class extends HTMLElement {
+      // Usaremos a classe direta quando o Google Maps estiver carregado
+    };
+  }
+
+  // Instancia a classe de overlay dinamicamente (precisa da biblioteca carregada)
+  function createCustomMarkerOverlay(lat, lng, html, title, popupContent) {
+    class CustomHTMLMapOverlay extends google.maps.OverlayView {
+      constructor(lat, lng, html, title, popupContent, map) {
+        super();
+        this.latlng = new google.maps.LatLng(lat, lng);
+        this.html = html;
+        this.title = title;
+        this.popupContent = popupContent;
+        this.setMap(map);
+      }
+      onAdd() {
+        this.div = document.createElement('div');
+        this.div.style.position = 'absolute';
+        this.div.style.cursor = 'pointer';
+        this.div.innerHTML = this.html;
+        
+        const panes = this.getPanes();
+        panes.overlayMouseTarget.appendChild(this.div);
+
+        // Evento de clique no marcador customizado
+        this.div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          
+          if (currentInfoWindow) {
+            currentInfoWindow.close();
+          }
+
+          currentInfoWindow = new google.maps.InfoWindow({
+            content: this.popupContent,
+            position: this.latlng
+          });
+          currentInfoWindow.open(map);
+        });
+      }
+      draw() {
+        const projection = this.getProjection();
+        if (!projection) return;
+        const position = projection.fromLatLngToDivPixel(this.latlng);
+        if (position) {
+          this.div.style.left = (position.x - 18) + 'px';
+          this.div.style.top = (position.y - 36) + 'px';
+        }
+      }
+      onRemove() {
+        if (this.div) {
+          this.div.parentNode.removeChild(this.div);
+          this.div = null;
+        }
+      }
+    }
+
+    return new CustomHTMLMapOverlay(lat, lng, html, title, popupContent, map);
+  }
+
+  // ─── INTEGRAÇÕES DE API / KPIS ─────────────────────────────────────────
+
+  async function updateStats() {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/stats`);
+      const result = await res.json();
+
+      if (result.success) {
+        const stats = result.data;
+        
+        // KPIs do dashboard
+        document.getElementById('kpi-total-equipes').innerText = stats.totalEquipes;
+        document.getElementById('kpi-total-obras').innerText = stats.totalObras;
+        document.getElementById('kpi-marcadores-ativos').innerText = stats.marcadoresAtivos;
+        document.getElementById('kpi-equipes-campo').innerText = stats.equipesCampo;
+
+        // Cabeçalho e barra lateral
+        document.getElementById('header-markers-chip').innerText = `📍 ${stats.marcadoresAtivos} marcadores ativos`;
+        document.getElementById('sidebar-equipes-campo').innerText = stats.equipesCampo;
+        document.getElementById('sidebar-equipes-count').innerText = stats.totalEquipes;
+        document.getElementById('sidebar-obras-count').innerText = stats.totalObras;
+
+        // Desenha pontinhos piscantes
+        const dotsContainer = document.getElementById('sidebar-team-dots');
+        dotsContainer.innerHTML = '';
+        for (let i = 0; i < Math.min(stats.equipesCampo, 6); i++) {
+          const dot = document.createElement('div');
+          dot.className = 'team-dot';
+          dotsContainer.appendChild(dot);
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao buscar estatísticas:", e);
+      showToast("Não foi possível carregar estatísticas do dashboard.", "error");
+    }
+  }
+
+  // Busca equipes
+  async function fetchEquipes() {
+    try {
+      const res = await fetch(`${API_BASE}/equipes`);
+      const result = await res.json();
+      if (result.success) {
+        equipesCache = result.data;
+        renderEquipesTable(equipesCache);
+        updateEquipesSelect();
+      }
+    } catch (e) {
+      console.error("Erro ao buscar equipes:", e);
+      showToast("Erro ao carregar lista de equipes.", "error");
+    }
+  }
+
+  // Busca obras
+  async function fetchObras() {
+    try {
+      const res = await fetch(`${API_BASE}/obras`);
+      const result = await res.json();
+      if (result.success) {
+        obrasCache = result.data;
+        renderObrasTable(obrasCache);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar obras:", e);
+      showToast("Erro ao carregar lista de obras.", "error");
+    }
+  }
+
+  // ─── GESTÃO DO GOOGLE MAPS DINÂMICO ────────────────────────────────────
+  async function loadMarcadoresMap() {
+    if (!map) return;
+    if (isGoogleMap && (!window.google || !window.google.maps)) return;
+    if (!isGoogleMap && !window.L) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/marcadores`);
+      const result = await res.json();
+
+      if (result.success) {
+        const marcadores = result.data;
+        marcadoresCache = marcadores;
+
+        // Limpa overlays/marcadores existentes
+        if (isGoogleMap) {
+          activeMarkers.forEach(m => m.setMap(null));
+          if (directionsRenderer) {
+            directionsRenderer.setDirections({ routes: [] });
+          }
+        } else {
+          activeMarkers.forEach(m => map.removeLayer(m));
+          if (leafletRoutePolyline) {
+            map.removeLayer(leafletRoutePolyline);
+            leafletRoutePolyline = null;
+          }
+        }
+        activeMarkers = [];
+
+        // Renderiza cada marcador
+        marcadores.forEach(m => {
+          let iconHtml = '';
+          
+          if (m.tipo === 'obra') {
+            iconHtml = `
+              <div style="
+                width: 36px; height: 36px;
+                background: linear-gradient(135deg, #ff4757, #c0392b);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid #fff;
+                box-shadow: 0 4px 14px rgba(255,71,87,0.6);
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <span style="transform: rotate(45deg); font-size: 14px; display:block;">🔨</span>
+              </div>`;
+          } else if (m.tipo === 'hospedagem') {
+            iconHtml = `
+              <div style="
+                width: 36px; height: 36px;
+                background: linear-gradient(135deg, #00d4ff, #0055ff);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid #fff;
+                box-shadow: 0 4px 14px rgba(0,212,255,0.6);
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <span style="transform: rotate(45deg); font-size: 14px; display:block;">🏨</span>
+              </div>`;
+          } else if (m.tipo === 'deposito') {
+            iconHtml = `
+              <div style="
+                width: 36px; height: 36px;
+                background: linear-gradient(135deg, #ffb300, #ff6b35);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid #fff;
+                box-shadow: 0 4px 14px rgba(255,179,0,0.6);
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <span style="transform: rotate(45deg); font-size: 14px; display:block;">📦</span>
+              </div>`;
+          } else if (m.tipo === 'veiculo') {
+            iconHtml = `
+              <div style="
+                width: 36px; height: 36px;
+                background: linear-gradient(135deg, #1adb8a, #10ac84);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid #fff;
+                box-shadow: 0 4px 14px rgba(26,219,138,0.6);
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <span style="transform: rotate(45deg); font-size: 14px; display:block;">🚛</span>
+              </div>`;
+          }
+
+          const tagLabel = m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1);
+          const statusDot = m.tipo === 'obra' ? '<span style="color: #1adb8a;">● Em andamento</span>' : '<span>● Ativo</span>';
+
+          const popupContent = `
+            <div style="font-family: 'DM Sans', sans-serif; min-width: 170px; padding: 4px; color: #162236;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #7a92b0; font-weight:600;">📍 ${tagLabel}</span>
+                <button onclick="deleteMarcador(${m.id})" style="background:none; border:none; color:#ff4757; font-size:0.75rem; cursor:pointer; font-weight:600;">Excluir</button>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #162236; margin-bottom: 2px;">${m.label}</div>
+              <div style="font-size: 0.72rem; color: #7a92b0;">Coords: ${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}</div>
+              <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(0,0,0,0.08); font-size: 0.7rem;">
+                ${statusDot}
+              </div>
+            </div>
+          `;
+
+          if (isGoogleMap) {
+            // Cria overlay customizado no Google Maps
+            const markerOverlay = createCustomMarkerOverlay(m.lat, m.lng, iconHtml, m.label, popupContent);
+            activeMarkers.push(markerOverlay);
+          } else {
+            // Cria marcador customizado no Leaflet
+            const customIcon = L.divIcon({
+              html: iconHtml,
+              className: 'custom-leaflet-marker',
+              iconSize: [36, 36],
+              iconAnchor: [18, 36],
+              popupAnchor: [0, -36]
+            });
+            const marker = L.marker([m.lat, m.lng], { icon: customIcon }).addTo(map);
+            marker.bindPopup(popupContent);
+            activeMarkers.push(marker);
+          }
+        });
+
+        // Otimizar e traçar rota terrestre exata pelas estradas reais
+        const primeiraObra = marcadores.find(m => m.tipo === 'obra');
+        const primeiraHospedagem = marcadores.find(m => m.tipo === 'hospedagem');
+
+        if (primeiraObra && primeiraHospedagem) {
+          if (isGoogleMap) {
+            if (directionsService && directionsRenderer) {
+              const request = {
+                origin: new google.maps.LatLng(primeiraObra.lat, primeiraObra.lng),
+                destination: new google.maps.LatLng(primeiraHospedagem.lat, primeiraHospedagem.lng),
+                travelMode: google.maps.TravelMode.DRIVING
+              };
+
+              directionsService.route(request, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                  directionsRenderer.setDirections(result);
+                } else {
+                  console.error("Erro no serviço de rota terrestre do Google:", status);
+                }
+              });
+            }
+          } else {
+            // Rota via OSRM (Gratuito)
+            try {
+              const routeUrl = `https://router.project-osrm.org/route/v1/driving/${primeiraObra.lng},${primeiraObra.lat};${primeiraHospedagem.lng},${primeiraHospedagem.lat}?overview=full&geometries=geojson`;
+              fetch(routeUrl)
+                .then(routeRes => routeRes.json())
+                .then(routeData => {
+                  if (routeData.code === 'Ok' && routeData.routes && routeData.routes.length > 0) {
+                    const coordinates = routeData.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    if (leafletRoutePolyline) {
+                      map.removeLayer(leafletRoutePolyline);
+                    }
+                    leafletRoutePolyline = L.polyline(coordinates, {
+                      color: '#00d4ff',
+                      weight: 4,
+                      opacity: 0.85
+                    }).addTo(map);
+                  }
+                })
+                .catch(err => console.error("Erro ao traçar rota via OSRM:", err));
+            } catch (err) {
+              console.error("Erro ao traçar rota via OSRM:", err);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao desenhar marcadores no mapa:", e);
+      showToast("Erro ao carregar os marcadores no mapa.", "error");
+    }
+  }
+
+  // Alterna o modo de adicionar marcadores
+  function toggleAddMarkerMode() {
+    isAddMarkerMode = !isAddMarkerMode;
+    const btn = document.getElementById('btn-toggle-add-marker');
+    const mapContainer = document.getElementById('mapa');
+
+    if (isAddMarkerMode) {
+      btn.classList.add('active-mode');
+      btn.innerHTML = '<span>❌</span> Cancelar';
+      mapContainer.classList.add('cursor-crosshair');
+      showToast("Modo de adição ativo. Clique em qualquer local do mapa.", "success");
+    } else {
+      btn.classList.remove('active-mode');
+      btn.innerHTML = '<span>➕</span> Adicionar Ponto';
+      mapContainer.classList.remove('cursor-crosshair');
+    }
+  }
+
+  // Abre modal do marcador com coordenadas geográficas do clique
+  function openMarcadorModal(lat, lng) {
+    document.getElementById('marcador-lat').value = lat;
+    document.getElementById('marcador-lng').value = lng;
+    document.getElementById('marcador-coords-text').innerText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    
+    // Reseta formulário
+    document.getElementById('marcador-label').value = '';
+    document.getElementById('marcador-tipo').selectedIndex = 0;
+
+    openModal('modal-marcador');
+  }
+
+  // Criação de Marcador via POST
+  async function handleMarcadorSubmit(event) {
+    event.preventDefault();
+    const lat = document.getElementById('marcador-lat').value;
+    const lng = document.getElementById('marcador-lng').value;
+    const label = document.getElementById('marcador-label').value;
+    const tipo = document.getElementById('marcador-tipo').value;
+
+    try {
+      const res = await fetch(`${API_BASE}/marcadores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng, label, tipo })
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast("Marcador adicionado ao mapa com sucesso!", "success");
+        closeModal('modal-marcador');
+        
+        if (isAddMarkerMode) toggleAddMarkerMode();
+
+        await Promise.all([
+          loadMarcadoresMap(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Erro do servidor: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Não foi possível registrar o marcador.", "error");
+    }
+  }
+
+  // Deleção de Marcador via DELETE
+  async function deleteMarcador(id) {
+    if (!confirm("Deseja realmente remover este marcador do mapa?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/marcadores/${id}`, {
+        method: 'DELETE'
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast("Marcador removido com sucesso.", "success");
+        if (currentInfoWindow) currentInfoWindow.close();
+        
+        await Promise.all([
+          loadMarcadoresMap(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Não foi possível excluir o marcador.", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Erro de rede ao remover o marcador.", "error");
+    }
+  }
+
+  // ─── GESTÃO DO CRUD DE EQUIPES ────────────────────────────────────────
+
+  function renderEquipesTable(equipes) {
+    const tbody = document.getElementById('tabela-equipes-body');
+    tbody.innerHTML = '';
+
+    if (equipes.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-sec);">Nenhuma equipe cadastrada.</td></tr>`;
+      return;
+    }
+
+    equipes.forEach(eq => {
+      const row = document.createElement('tr');
+      const badgeClass = eq.status === 'ativo' ? 'badge-active' : 'badge-inactive';
+      const statusText = eq.status === 'ativo' ? 'Ativo' : 'Inativo';
+
+      row.innerHTML = `
+        <td><strong>#${eq.id}</strong></td>
+        <td>${eq.nome}</td>
+        <td>${eq.responsavel}</td>
+        <td><span class="badge ${badgeClass}">● ${statusText}</span></td>
+        <td class="actions-cell">
+          <button class="btn-action" onclick="openEquipeModal(${eq.id}, '${eq.nome}', '${eq.responsavel}', '${eq.status}')">Editar</button>
+          <button class="btn-action btn-action-delete" onclick="deleteEquipe(${eq.id})">Excluir</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function openEquipeModal(id = '', nome = '', responsavel = '', status = 'ativo') {
+    document.getElementById('equipe-id').value = id;
+    document.getElementById('equipe-nome').value = nome;
+    document.getElementById('equipe-responsavel').value = responsavel;
+    document.getElementById('equipe-status').value = status;
+
+    if (id) {
+      document.getElementById('modal-equipe-title').innerText = 'Editar Equipe';
+    } else {
+      document.getElementById('modal-equipe-title').innerText = 'Nova Equipe';
+    }
+
+    openModal('modal-equipe');
+  }
+
+  async function handleEquipeSubmit(event) {
+    event.preventDefault();
+    const id = document.getElementById('equipe-id').value;
+    const nome = document.getElementById('equipe-nome').value;
+    const responsavel = document.getElementById('equipe-responsavel').value;
+    const status = document.getElementById('equipe-status').value;
+
+    const payload = { nome, responsavel, status };
+    const url = id ? `${API_BASE}/equipes/${id}` : `${API_BASE}/equipes`;
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast(id ? "Equipe atualizada com sucesso!" : "Equipe criada com sucesso!", "success");
+        closeModal('modal-equipe');
+        await Promise.all([
+          fetchEquipes(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Erro do servidor: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao processar dados da equipe.", "error");
+    }
+  }
+
+  async function deleteEquipe(id) {
+    if (!confirm("Deseja realmente remover esta equipe? Obras associadas perderão o vínculo.")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/equipes/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast("Equipe excluída com sucesso.", "success");
+        await Promise.all([
+          fetchEquipes(),
+          fetchObras(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Erro: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao tentar excluir a equipe.", "error");
+    }
+  }
+
+  function updateEquipesSelect() {
+    const select = document.getElementById('obra-equipe');
+    select.innerHTML = '<option value="">Nenhuma (Obra sem equipe)</option>';
+    equipesCache.forEach(eq => {
+      if (eq.status === 'ativo') {
+        const opt = document.createElement('option');
+        opt.value = eq.id;
+        opt.innerText = eq.nome;
+        select.appendChild(opt);
+      }
+    });
+  }
+
+  // ─── GESTÃO DO CRUD DE OBRAS ──────────────────────────────────────────
+
+  function renderObrasTable(obras) {
+    const tbody = document.getElementById('tabela-obras-body');
+    tbody.innerHTML = '';
+
+    if (obras.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-sec);">Nenhuma obra cadastrada.</td></tr>`;
+      return;
+    }
+
+    obras.forEach(ob => {
+      const row = document.createElement('tr');
+      let statusClass = 'badge-progress';
+      let statusText = 'Em Andamento';
+
+      if (ob.status === 'concluida') {
+        statusClass = 'badge-completed';
+        statusText = 'Concluída';
+      } else if (ob.status === 'pausada') {
+        statusClass = 'badge-paused';
+        statusText = 'Pausada';
+      }
+
+      const equipeDesc = ob.equipe_nome ? `👥 ${ob.equipe_nome}` : `<span style="color: var(--text-sec); font-style:italic;">Sem equipe</span>`;
+
+      row.innerHTML = `
+        <td><strong>#${ob.id}</strong></td>
+        <td>${ob.nome}</td>
+        <td>${ob.endereco}</td>
+        <td>${equipeDesc}</td>
+        <td><span class="badge ${statusClass}">● ${statusText}</span></td>
+        <td class="actions-cell">
+          <button class="btn-action" onclick="openObraModal(${ob.id}, '${ob.nome}', '${ob.endereco}', '${ob.equipe_id || ''}', '${ob.status}')">Editar</button>
+          <button class="btn-action btn-action-delete" onclick="deleteObra(${ob.id})">Excluir</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function openObraModal(id = '', nome = '', endereco = '', equipe_id = '', status = 'em_andamento') {
+    document.getElementById('obra-id').value = id;
+    document.getElementById('obra-nome').value = nome;
+    document.getElementById('obra-endereco').value = endereco;
+    document.getElementById('obra-equipe').value = equipe_id;
+    document.getElementById('obra-status').value = status;
+
+    if (id) {
+      document.getElementById('modal-obra-title').innerText = 'Editar Obra';
+    } else {
+      document.getElementById('modal-obra-title').innerText = 'Nova Obra';
+    }
+
+    openModal('modal-obra');
+  }
+
+  async function handleObraSubmit(event) {
+    event.preventDefault();
+    const id = document.getElementById('obra-id').value;
+    const nome = document.getElementById('obra-nome').value;
+    const endereco = document.getElementById('obra-endereco').value;
+    const equipe_id = document.getElementById('obra-equipe').value;
+    const status = document.getElementById('obra-status').value;
+
+    const payload = { nome, endereco, equipe_id: equipe_id || null, status };
+    const url = id ? `${API_BASE}/obras/${id}` : `${API_BASE}/obras`;
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast(id ? "Obra atualizada com sucesso!" : "Obra criada com sucesso!", "success");
+        closeModal('modal-obra');
+        await Promise.all([
+          fetchObras(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Erro do servidor: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao processar dados da obra.", "error");
+    }
+  }
+
+  async function deleteObra(id) {
+    if (!confirm("Deseja realmente remover esta obra?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/obras/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (result.success) {
+        showToast("Obra excluída com sucesso.", "success");
+        await Promise.all([
+          fetchObras(),
+          updateStats()
+        ]);
+      } else {
+        showToast("Erro: " + result.error, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Erro ao tentar remover a obra.", "error");
+    }
+  }
+
+  // ─── NAVEGAÇÃO E MODAIS ───────────────────────────────────────────────
+
+  function switchView(viewId) {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.getElementById(`nav-${viewId}`).classList.add('active');
+
+    document.querySelectorAll('.view-content').forEach(view => view.style.display = 'none');
+    document.getElementById(`view-${viewId}`).style.display = 'flex';
+
+    const headerTitle = document.getElementById('header-title-view');
+    const headerBreadcrumb = document.getElementById('header-breadcrumb-current');
+
+    if (viewId === 'dashboard') {
+      headerTitle.innerText = 'Mapa Operacional';
+      headerBreadcrumb.innerText = 'Visão em Tempo Real';
+      
+      // Redesenha e ajusta o mapa para evitar falhas visuais de inicialização oculta
+      if (map) {
+        setTimeout(() => {
+          if (isGoogleMap) {
+            if (window.google && window.google.maps) {
+              google.maps.event.trigger(map, 'resize');
+              // Reaplica bounds se houver marcadores
+              if (activeMarkers.length > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                activeMarkers.forEach(m => bounds.extend(m.latlng));
+                map.fitBounds(bounds);
+              }
+            }
+          } else {
+            // Leaflet
+            map.invalidateSize();
+            if (activeMarkers.length > 0) {
+              const group = new L.featureGroup(activeMarkers);
+              map.fitBounds(group.getBounds().pad(0.1));
+            }
+          }
+        }, 50);
+      }
+    } else if (viewId === 'equipes') {
+      headerTitle.innerText = 'Gestão de Equipes';
+      headerBreadcrumb.innerText = 'Controle de Pessoal';
+    } else if (viewId === 'obras') {
+      headerTitle.innerText = 'Painel de Obras';
+      headerBreadcrumb.innerText = 'Projetos e Canteiros';
+    } else if (viewId === 'configs') {
+      headerTitle.innerText = 'Configurações';
+      headerBreadcrumb.innerText = 'Parâmetros do Sistema';
+    }
+  }
+
+  function openModal(modalId) {
+    document.getElementById(`${modalId}-overlay`).classList.add('active');
+  }
+
+  function closeModal(modalId) {
+    document.getElementById(`${modalId}-overlay`).classList.remove('active');
+    
+    if (modalId === 'modal-marcador' && isAddMarkerMode) {
+      toggleAddMarkerMode();
+    }
+  }
+
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+
+    const icon = type === 'success' ? '✓' : '⚠';
+
+    toast.innerHTML = `
+      <div class="toast-icon">${icon}</div>
+      <div>${message}</div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('active');
+    }, 10);
+
+    setTimeout(() => {
+      toast.classList.remove('active');
+      setTimeout(() => {
+        toast.remove();
+      }, 300);
+    }, 3000);
+  }
+</script>
+
+</body>
+</html>
