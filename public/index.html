@@ -1254,8 +1254,11 @@
 </div>
 
 <script>
-  // URL base para as chamadas de API
-  const API_BASE = '/api/v1';
+  // URL base para as chamadas de API.
+  // Se rodando via arquivos locais (file://) ou Live Server, aponta diretamente para o backend na porta 3000.
+  const API_BASE = (window.location.protocol === 'file:' || window.location.port === '5500' || window.location.port === '5501')
+    ? 'http://localhost:3000/api/v1'
+    : '/api/v1';
 
   // Variáveis globais do Mapa (compatível com Google Maps e Leaflet)
   let map = null;
